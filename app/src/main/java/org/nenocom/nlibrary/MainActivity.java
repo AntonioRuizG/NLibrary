@@ -1,39 +1,77 @@
 package org.nenocom.nlibrary;
 
-import android.support.v7.app.ActionBarActivity;
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.Context;
+import android.content.pm.ConfigurationInfo;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Toast;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends Activity {
+
+    private GLSurfaceView surface;
+    private boolean rendererEstablecido = false;
+    private NRenderer renderer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        surface = new MyGLSurfaceView(this);
+        iniciaOpengl();
+        setContentView(surface);
+
+
     }
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+    public void onPause(){
+        super.onPause();
+        if(rendererEstablecido){
+            surface.onPause();
         }
+    }
 
-        return super.onOptionsItemSelected(item);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (rendererEstablecido) {
+            surface.onResume();
+        }
+    }
+
+    /**
+     * Inicia OpenGL ES 2.0 si el dispositivo lo soporta.
+     */
+    private void iniciaOpengl() {
+        if (soportaOpenGl2()) {
+            // Establece un contexto compatible con OpenGL ES 2.0.
+            surface.setEGLContextClientVersion(2);
+            // Asigna el renderer.
+            renderer = new NRenderer();
+            surface.setRenderer(renderer);
+            rendererEstablecido = true;
+        } else {
+            Toast.makeText(this, "This device does not support OpenGL ES 2.0.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     *
+     * @return true si el dispositivo soporta OpenGL ES 2.0.
+     */
+    private boolean soportaOpenGl2() {
+        final ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        final ConfigurationInfo configurationInfo = activityManager.getDeviceConfigurationInfo();
+        return configurationInfo.reqGlEsVersion >= 0x20000;
     }
 }
+
